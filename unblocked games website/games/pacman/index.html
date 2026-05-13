@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Pac-Man</title>
+
+<style>
+body{
+  margin:0;
+  background:black;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  overflow:hidden;
+  font-family:Arial,sans-serif;
+}
+
+canvas{
+  background:black;
+  border:4px solid #0044ff;
+}
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const TILE = 28;
+
+const levels = [
+
+[
+"###################",
+"#........#........#",
+"#.###.##.#.##.###.#",
+"#o###.##.#.##.###o#",
+"#.................#",
+"#.###.#.###.#.###.#",
+"#.....#...#.#.....#",
+"#####.###.#.###.###",
+"#........#........#",
+"#.###.#####.###.#.#",
+"#o.............#.o#",
+"###.#.#.#.#.#.###.#",
+"#.....#...#.......#",
+"#.#########.#####.#",
+"#.................#",
+"###################"
+],
+
+[
+"###################",
+"#.................#",
+"#.###############.#",
+"#o...............o#",
+"#####.#######.#####",
+"#.................#",
+"#.###############.#",
+"#.................#",
+"###################"
+],
+
+[
+"###################",
+"#o....#.....#....o#",
+"#.###.#.###.#.###.#",
+"#.................#",
+"####.#######.######",
+"#.................#",
+"#.###############.#",
+"#.................#",
+"###################"
+],
+
+[
+"###################",
+"#.................#",
+"#.#####.###.#####.#",
+"#.#.............#.#",
+"#.#.###########.#.#",
+"#.#.............#.#",
+"#o#####.###.#####o#",
+"#.................#",
+"###################"
+],
+
+[
+"###################",
+"#o...............o#",
+"#.###############.#",
+"#.................#",
+"#####.#######.#####",
+"#.................#",
+"#.###############.#",
+"#.................#",
+"###################"
+]
+
+];
+
+let currentLevel = 0;
+let map = [];
+
+let walls = [];
+let pellets = [];
+
+let score = 0;
+
+const pacman = {
+  x:0,
+  y:0,
+  radius:12,
+  speed:2.5,
+  dx:0,
+  dy:0,
+  nextDx:0,
+  nextDy:0,
+  mouth:0.2,
+  mouthSpeed:0.03
+};
+
+const ghosts = [
+{
+  x:300,
+  y:180,
+  radius:12,
+  color:"red",
+  dx:2,
+  dy:0
+},
+{
+  x:350,
+  y:180,
+  radius:12,
+  color:"pink",
+  dx:-2,
+  dy:0
+}
+];
+
+function loadLevel(){
+
+  map = levels[currentLevel];
+
+  walls = [];
+  pellets = [];
+
+  for(let row=0; row<map.length; row++){
+
+    for(let col=0; col<map[row].length; col++){
+
+      const tile = map[row][col];
+
+      if(tile === "#"){
+
+        walls.push({
+          x:col*TILE,
+          y:row*TILE,
+          width:TILE,
+          height:TILE
+        });
+      }
+
+      if(tile === "." || tile === "o"){
+
+        pellets.push({
+          x:col*TILE + TILE/2,
+          y:row*TILE + TILE/2,
+          eaten:false,
+          power:tile === "o"
+        });
+      }
+    }
+  }
+
+  canvas.width = map[0].length * TILE;
+  canvas.height = map.length * TILE;
+
+  pacman.x = TILE * 1.5;
+  pacman.y = TILE * 1.5;
+
+  pacman.dx = 0;
+  pacman.dy = 0;
+
+  pacman.nextDx = 0;
+  pacman.nextDy = 0;
+
+  ghosts[0].x = TILE * 9;
+  ghosts[0].y = TILE * 7;
+  ghosts[0].dx = 2;
+  ghosts[0].dy = 0;
+
+  ghosts[1].x = TILE * 11;
+  ghosts[1].y = TILE * 7;
+  ghosts[1].dx = -2;
+  ghosts[1].dy = 0;
+}
+
+function wallCollision(x,y,radius){
+
+  return walls.some(wall =>
+
+    x + radius > wall.x &&
+    x - radius < wall.x + wall.width &&
+    y + radius > wall.y &&
+    y - radius < wall.y + wall.height
+  );
+}
+
+function drawWalls(){
+
+  ctx.fillStyle = "#003cff";
+
+  walls.forEach(wall => {
+
+    ctx.fillRect(
+      wall.x,
+      wall.y,
+      wall.width,
+      wall.height
+    );
+  });
+}
+
+function drawPellets(){
+
+  pellets.forEach(pellet => {
+
+    if(!pellet.eaten){
+
+      ctx.fillStyle = "white";
+
+      ctx.beginPath();
+
+      ctx.arc(
+        pellet.x,
+        pellet.y,
+        pellet.power ? 6 : 3,
+        0,
+        Math.PI * 2
+      );
+
+      ctx.fill();
+    }
+  });
+}
+
+function drawPacman(){
+
+  let rotation = 0;
+
+  if(pacman.dx > 0) rotation = 0;
+  if(pacman.dx < 0) rotation = Math.PI;
+  if(pacman.dy > 0) rotation = Math.PI/2;
+  if(pacman.dy < 0) rotation = -Math.PI/2;
+
+  ctx.save();
+
+  ctx.translate(pacman.x,pacman.y);
+  ctx.rotate(rotation);
+
+  ctx.fillStyle = "yellow";
+
+  ctx.beginPath();
+
+  ctx.moveTo(0,0);
+
+  ctx.arc(
+    0,
+    0,
+    pacman.radius,
+    pacman.mouth,
+    Math.PI*2 - pacman.mouth
+  );
+
+  ctx.closePath();
+
+  ctx.fill();
+
+  ctx.restore();
+
+  pacman.mouth += pacman.mouthSpeed;
+
+  if(
+    pacman.mouth > 0.45 ||
+    pacman.mouth < 0.05
+  ){
+    pacman.mouthSpeed *= -1;
+  }
+}
+
+function drawGhosts(){
+
+  ghosts.forEach(ghost => {
+
+    ctx.fillStyle = ghost.color;
+
+    ctx.beginPath();
+
+    ctx.arc(
+      ghost.x,
+      ghost.y,
+      ghost.radius,
+      0,
+      Math.PI*2
+    );
+
+    ctx.fill();
+  });
+}
+
+function movePacman(){
+
+  if(
+    !wallCollision(
+      pacman.x + pacman.nextDx,
+      pacman.y + pacman.nextDy,
+      pacman.radius
+    )
+  ){
+
+    pacman.dx = pacman.nextDx;
+    pacman.dy = pacman.nextDy;
+  }
+
+  if(
+    !wallCollision(
+      pacman.x + pacman.dx,
+      pacman.y + pacman.dy,
+      pacman.radius
+    )
+  ){
+
+    pacman.x += pacman.dx;
+    pacman.y += pacman.dy;
+  }
+
+  pellets.forEach(pellet => {
+
+    if(
+      !pellet.eaten &&
+      Math.hypot(
+        pacman.x - pellet.x,
+        pacman.y - pellet.y
+      ) < 14
+    ){
+
+      pellet.eaten = true;
+
+      score += pellet.power ? 50 : 10;
+    }
+  });
+
+  if(
+    pellets.every(p => p.eaten)
+  ){
+
+    currentLevel++;
+
+    if(currentLevel >= levels.length){
+
+      alert("YOU BEAT ALL 5 LEVELS!");
+
+      currentLevel = 0;
+      score = 0;
+    }
+
+    loadLevel();
+  }
+}
+
+function moveGhosts(){
+
+  ghosts.forEach(ghost => {
+
+    if(
+      wallCollision(
+        ghost.x + ghost.dx,
+        ghost.y + ghost.dy,
+        ghost.radius
+      )
+    ){
+
+      const dirs = [
+        {x:2,y:0},
+        {x:-2,y:0},
+        {x:0,y:2},
+        {x:0,y:-2}
+      ];
+
+      const validDirs = dirs.filter(dir =>
+
+        !wallCollision(
+          ghost.x + dir.x,
+          ghost.y + dir.y,
+          ghost.radius
+        )
+      );
+
+      const chosen =
+        validDirs[
+          Math.floor(Math.random()*validDirs.length)
+        ];
+
+      if(chosen){
+
+        ghost.dx = chosen.x;
+        ghost.dy = chosen.y;
+      }
+    }
+
+    ghost.x += ghost.dx;
+    ghost.y += ghost.dy;
+
+    if(
+      Math.hypot(
+        pacman.x - ghost.x,
+        pacman.y - ghost.y
+      ) < 20
+    ){
+
+      alert("GAME OVER");
+
+      currentLevel = 0;
+      score = 0;
+
+      loadLevel();
+    }
+  });
+}
+
+function drawUI(){
+
+  ctx.fillStyle = "white";
+  ctx.font = "20px Arial";
+
+  ctx.fillText(
+    "Score: " + score,
+    10,
+    24
+  );
+
+  ctx.fillText(
+    "Level: " + (currentLevel + 1),
+    320,
+    24
+  );
+}
+
+function update(){
+
+  ctx.clearRect(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  movePacman();
+
+  moveGhosts();
+
+  drawWalls();
+
+  drawPellets();
+
+  drawPacman();
+
+  drawGhosts();
+
+  drawUI();
+
+  requestAnimationFrame(update);
+}
+
+document.addEventListener("keydown",e => {
+
+  if(e.key === "ArrowLeft"){
+    pacman.nextDx = -pacman.speed;
+    pacman.nextDy = 0;
+  }
+
+  if(e.key === "ArrowRight"){
+    pacman.nextDx = pacman.speed;
+    pacman.nextDy = 0;
+  }
+
+  if(e.key === "ArrowUp"){
+    pacman.nextDx = 0;
+    pacman.nextDy = -pacman.speed;
+  }
+
+  if(e.key === "ArrowDown"){
+    pacman.nextDx = 0;
+    pacman.nextDy = pacman.speed;
+  }
+});
+
+loadLevel();
+update();
+</script>
+
+</body>
+</html>

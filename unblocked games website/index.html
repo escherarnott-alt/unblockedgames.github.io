@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unblocked Games</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Unblocked Games</h1>
+    <input type="text" id="search" placeholder="Search games..." />
+  </header>
+
+  <main class="game-grid">
+    <div class="game-card" onclick="openGame('games/snake/index.html')">
+  <img src="images/snake.png" alt="Snake">
+  <h2>Snake</h2>
+</div>
+
+   <div class="game-card" onclick="openGame('games/flappy/index.html')">
+  <img src="images/flappy.png" alt="Flappy Bird">
+  <h2>Flappy Bird</h2>
+</div>
+
+    <div class="game-card" onclick="openGame('games/tetris/index.html')">
+  <img src="images/tetris.png" alt="Tetris">
+  <h2>Tetris</h2>
+</div>
+
+<div class="game-card" onclick="openGame('games/spaceinvaders/index.html')">
+  <img src="images/spaceinvaders.png" alt="Space Invaders">
+  <h2>Space Invaders</h2>
+</div>
+
+<div class="game-card" onclick="openGame('games/pacman/index.html')">
+  <img src="images/pacman.png" alt="Pac-Man">
+  <h2>Pac-Man</h2>
+</div>
+
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
+<script>
+function openGame(url) {
+  const win = window.open("about:blank", "_blank");
+
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Game</title>
+
+      <style>
+        html, body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          background: black;
+        }
+
+        iframe {
+          border: none;
+          width: 100%;
+          height: 100%;
+        }
+      </style>
+    </head>
+
+    <body>
+      <iframe src="${url}" allowfullscreen></iframe>
+    </body>
+    </html>
+  `);
+
+  win.document.close();
+}
+</script>
+
